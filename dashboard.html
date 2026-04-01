@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RPG Stat Curve Visualizer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #0f1117;
+  --bg2:      #161b25;
+  --bg3:      #1e2533;
+  --bg4:      #252d3d;
+  --border:   rgba(255,255,255,0.07);
+  --border2:  rgba(255,255,255,0.13);
+  --text:     #e8eaf0;
+  --text2:    #8b919e;
+  --text3:    #555e6e;
+  --accent:   #378ADD;
+  --abg:      rgba(55,138,221,0.12);
+  --danger:   #e53935;
+  --dangerbg: rgba(229,57,53,0.13);
+  --warn:     #f4a800;
+  --warnbg:   rgba(244,168,0,0.13);
+  --ok:       #43a047;
+  --okbg:     rgba(67,160,71,0.13);
+  --r: 8px;
+  --rl: 12px;
+}
+
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); font-size: 13px; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+.topbar { height: 46px; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0; }
+.logo { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+.sep { width: 1px; height: 18px; background: var(--border2); }
+.topbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.layout { display: grid; grid-template-columns: 270px 1fr 290px; flex: 1; overflow: hidden; }
+
+.panel { background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.rpanel { background: var(--bg2); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+
+.ps { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.ps-title { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+.scroll { overflow-y: auto; flex: 1; }
+.scroll::-webkit-scrollbar { width: 4px; }
+.scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.field:last-child { margin-bottom: 0; }
+.field label { font-size: 11px; color: var(--text2); }
+input[type=number], input[type=text], select, textarea {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--r); color: var(--text); font-size: 12px; padding: 5px 8px; outline: none;
+  transition: border-color 0.12s; font-family: inherit;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+select option { background: var(--bg3); }
+textarea { resize: vertical; min-height: 60px; font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+
+.btn { font-size: 11px; font-weight: 500; padding: 6px 10px; border-radius: var(--r); border: 1px solid var(--border2); background: transparent; color: var(--text); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: background 0.1s; white-space: nowrap; }
+.btn:hover { background: var(--bg3); }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-primary:hover { background: #2a74c7; }
+.btn-sm { padding: 4px 8px; font-size: 10px; }
+.btn-danger { border-color: rgba(229,57,53,0.4); color: #ef9a9a; }
+.btn-danger:hover { background: var(--dangerbg); }
+.btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.badge { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+.badge-danger { background: var(--dangerbg); color: #ef9a9a; border: 1px solid rgba(229,57,53,0.3); }
+.badge-warn   { background: var(--warnbg);   color: #ffe082; border: 1px solid rgba(244,168,0,0.3); }
+.badge-ok     { background: var(--okbg);     color: #a5d6a7; border: 1px solid rgba(67,160,71,0.3); }
+.badge-info   { background: var(--abg);      color: #90caf9; border: 1px solid rgba(55,138,221,0.3); }
+
+.stat-cat { border-bottom: 1px solid var(--border); }
+.cat-header { display: flex; align-items: center; gap: 8px; padding: 8px 14px; cursor: pointer; user-select: none; }
+.cat-header:hover { background: var(--bg3); }
+.cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.cat-name { font-size: 11px; font-weight: 600; color: var(--text); flex: 1; }
+.cat-chevron { font-size: 10px; color: var(--text3); transition: transform 0.15s; }
+.cat-chevron.open { transform: rotate(90deg); }
+.cat-stats { display: none; padding: 4px 0 8px 0; }
+.cat-stats.open { display: block; }
+
+.stat-row { display: flex; align-items: center; gap: 8px; padding: 5px 14px 5px 30px; cursor: pointer; transition: background 0.08s; }
+.stat-row:hover { background: var(--bg3); }
+.stat-row.active { background: var(--bg4); }
+.stat-check { width: 13px; height: 13px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer; }
+.stat-name { font-size: 11px; color: var(--text); flex: 1; }
+.stat-short { font-size: 9px; color: var(--text3); min-width: 32px; text-align: right; font-family: monospace; }
+.stat-issue-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+.main { display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+
+.tabs { display: flex; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 14px; flex-shrink: 0; }
+.tab { font-size: 11px; font-weight: 500; color: var(--text3); padding: 10px 12px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.1s; }
+.tab:hover { color: var(--text2); }
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+.tab-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+.tab-content.active { display: flex; }
+
+.chart-area { display: flex; flex-direction: column; flex: 1; overflow: hidden; padding: 14px; gap: 10px; }
+.chart-wrap { flex: 1; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--rl); padding: 12px; position: relative; min-height: 0; }
+.chart-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 8px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text2); cursor: pointer; padding: 2px 6px; border-radius: var(--r); border: 1px solid transparent; }
+.legend-item:hover { background: var(--bg3); }
+.legend-item.dimmed { opacity: 0.35; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.metrics-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; flex-shrink: 0; }
+.metric { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 8px 10px; }
+.metric-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+.metric-val { font-size: 18px; font-weight: 600; color: var(--text); }
+.metric-sub { font-size: 9px; color: var(--text3); margin-top: 1px; }
+
+.issues-list { padding: 14px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; flex: 1; }
+.issue-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 9px 12px; display: flex; align-items: flex-start; gap: 10px; }
+.issue-card.danger { border-left: 3px solid var(--danger); }
+.issue-card.warn   { border-left: 3px solid var(--warn); }
+.issue-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+.issue-body { flex: 1; }
+.issue-title { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.issue-sub { font-size: 10px; color: var(--text3); }
+.issue-level { font-size: 10px; color: var(--text3); white-space: nowrap; }
+
+.table-wrap { flex: 1; overflow: auto; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.data-table th { padding: 7px 10px; background: var(--bg2); border-bottom: 1px solid var(--border); color: var(--text3); font-size: 10px; text-align: right; position: sticky; top: 0; z-index: 2; white-space: nowrap; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.data-table th:first-child { text-align: center; left: 0; z-index: 3; }
+.data-table td { padding: 5px 10px; border-bottom: 1px solid var(--border); text-align: right; color: var(--text2); white-space: nowrap; }
+.data-table td:first-child { text-align: center; font-weight: 600; color: var(--text3); font-size: 10px; position: sticky; left: 0; background: var(--bg); z-index: 1; }
+.data-table tr:hover td { background: var(--bg3); }
+.data-table tr:hover td:first-child { background: var(--bg3); }
+
+.formula-editor { display: flex; flex-direction: column; gap: 8px; }
+.formula-type-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.ftype-btn { font-size: 10px; padding: 4px 8px; border-radius: var(--r); border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; transition: all 0.1s; }
+.ftype-btn:hover { background: var(--bg3); }
+.ftype-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.lookup-table { display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow-y: auto; }
+.lookup-row { display: flex; gap: 6px; align-items: center; }
+.lookup-row input { flex: 1; }
+
+.formula-preview { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r); padding: 6px 10px; font-family: monospace; font-size: 11px; color: #90caf9; min-height: 28px; }
+
+.saved-list { display: flex; flex-direction: column; gap: 5px; padding: 10px 14px; }
+.saved-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r); cursor: pointer; transition: border-color 0.1s; }
+.saved-item:hover { border-color: var(--border2); }
+.saved-item.active { border-color: var(--accent); }
+.saved-item-info { flex: 1; }
+.saved-item-name { font-size: 12px; font-weight: 500; color: var(--text); }
+.saved-item-meta { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+.inspector-stat { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; }
+.info-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r); padding: 10px 12px; }
+.info-card-title { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 7px; font-weight: 600; }
+.info-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
+.info-row:last-child { border-bottom: none; }
+.info-row-label { color: var(--text3); }
+.info-row-val { color: var(--text); font-weight: 500; font-family: monospace; }
+
+.sparkline-wrap { height: 50px; position: relative; }
+
+.empty-state { text-align: center; color: var(--text3); font-size: 12px; padding: 30px 16px; }
+
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--bg2); border: 1px solid var(--border2); color: var(--text); font-size: 12px; padding: 8px 16px; border-radius: 20px; opacity: 0; transition: opacity 0.18s, transform 0.18s; pointer-events: none; z-index: 999; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.stat-curve-color { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">RPG Stat Curve Visualizer</span>
+  <div class="sep"></div>
+  <span id="tbProjectName" style="font-size:12px;color:var(--text2)">New Project</span>
+  <div class="topbar-right">
+    <span id="tbIssueCount" style="font-size:11px;color:var(--text3)"></span>
+    <button class="btn btn-sm" onclick="exportCSV()">CSV</button>
+    <button class="btn btn-sm" onclick="exportJSON()">JSON</button>
+    <button class="btn btn-sm btn-primary" onclick="saveProject()">Save</button>
+    <button class="btn btn-sm" onclick="loadProjectFile()">Load</button>
+    <input type="file" id="fileInput" accept=".json" style="display:none" onchange="onFileLoad(event)" />
+  </div>
+</div>
+
+<div class="layout">
+
+  <div class="panel">
+    <div class="ps">
+      <div class="ps-title">Project</div>
+      <div class="field">
+        <label>Project name</label>
+        <input type="text" id="projectName" value="My RPG" oninput="project.name=this.value;updateTopbar()" />
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Min level</label>
+          <input type="number" id="minLevel" value="1" min="0" max="999" onchange="onLevelRangeChange()" />
+        </div>
+        <div class="field">
+          <label>Max level</label>
+          <input type="number" id="maxLevel" value="100" min="1" max="9999" onchange="onLevelRangeChange()" />
+        </div>
+      </div>
+    </div>
+
+    <div class="ps" style="flex-shrink:0">
+      <div class="ps-title">Formula editor</div>
+      <div class="formula-editor" id="formulaEditor">
+        <div style="color:var(--text3);font-size:11px">Select a stat to edit its formula.</div>
+      </div>
+    </div>
+
+    <div class="ps" style="flex-shrink:0">
+      <div class="ps-title">Balance thresholds</div>
+      <div class="row2">
+        <div class="field">
+          <label>Warn spike ratio</label>
+          <input type="number" id="thWarn" value="2.0" step="0.1" min="1" onchange="recomputeAll()" />
+        </div>
+        <div class="field">
+          <label>Danger spike ratio</label>
+          <input type="number" id="thDanger" value="3.0" step="0.1" min="1" onchange="recomputeAll()" />
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Warn flat (levels)</label>
+          <input type="number" id="thFlatWarn" value="5" min="1" onchange="recomputeAll()" />
+        </div>
+        <div class="field">
+          <label>Danger flat (levels)</label>
+          <input type="number" id="thFlatDanger" value="10" min="1" onchange="recomputeAll()" />
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll" style="flex:1">
+      <div id="statList"></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('curves',this)">Curves</div>
+      <div class="tab" onclick="switchTab('issues',this)">Issues <span id="issueTabBadge"></span></div>
+      <div class="tab" onclick="switchTab('table',this)">Data table</div>
+      <div class="tab" onclick="switchTab('ttk',this)">TTK / Economy</div>
+      <div class="tab" onclick="switchTab('saved',this)">Saved</div>
+    </div>
+
+    <div class="tab-content active" id="tab-curves">
+      <div class="chart-area">
+        <div class="metrics-row" id="metricsRow">
+          <div class="metric"><div class="metric-label">Active stats</div><div class="metric-val" id="mActive">0</div></div>
+          <div class="metric"><div class="metric-label">Level range</div><div class="metric-val" id="mRange">1-100</div><div class="metric-sub">100 steps</div></div>
+          <div class="metric"><div class="metric-label">Issues</div><div class="metric-val" id="mIssues">0</div></div>
+          <div class="metric"><div class="metric-label">Danger</div><div class="metric-val" id="mDanger" style="color:var(--danger)">0</div></div>
+        </div>
+        <div class="chart-toolbar">
+          <div class="chart-legend" id="chartLegend"></div>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn btn-sm" onclick="toggleLogScale()">Log scale: <span id="logLabel">off</span></button>
+            <button class="btn btn-sm" onclick="normalizeView()">Normalize: <span id="normLabel">off</span></button>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="mainChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-issues">
+      <div class="issues-list" id="issuesList">
+        <div class="empty-state">No issues found. Enable some stats to analyze.</div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-table">
+      <div class="table-wrap">
+        <table class="data-table" id="dataTable">
+          <thead><tr><th>LV</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-ttk">
+      <div class="chart-area">
+        <div style="font-size:12px;color:var(--text2);flex-shrink:0">
+          Time-to-Kill uses ATK vs HP. Gold Efficiency uses gold_drop vs item_cost. Enable these stats to see the charts.
+        </div>
+        <div class="chart-wrap" style="flex:1">
+          <canvas id="ttkChart"></canvas>
+        </div>
+        <div class="chart-wrap" style="flex:1">
+          <canvas id="econChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-saved">
+      <div class="saved-list" id="savedList">
+        <div class="empty-state">No saved projects yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rpanel">
+    <div class="ps" style="flex-shrink:0">
+      <div class="ps-title">Stat inspector</div>
+      <div style="font-size:11px;color:var(--text3)" id="inspectorHint">Select a stat from the list.</div>
+    </div>
+    <div class="scroll" style="flex:1" id="inspectorContent"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STAT_DATA = {"version":"1.0.0","categories":[{"id":"combat_offense","name":"Combat - Offense","color":"#e53935","stats":[{"id":"attack","name":"Attack","short":"ATK","description":"Base physical damage dealt per hit","default_formula":{"type":"linear","a":5,"b":10},"unit":"","min":0,"warn_spike_ratio":2.5,"tags":["combat","offense","physical"]},{"id":"magic_attack","name":"Magic Attack","short":"MATK","description":"Base magical damage dealt per hit","default_formula":{"type":"exponential","a":4,"b":1.08},"unit":"","min":0,"warn_spike_ratio":2.5,"tags":["combat","offense","magic"]},{"id":"crit_chance","name":"Crit Chance","short":"CRIT%","description":"Probability of landing a critical strike","default_formula":{"type":"linear","a":0.3,"b":5},"unit":"%","min":0,"max":100,"warn_spike_ratio":1.5,"tags":["combat","offense","percent"]},{"id":"crit_damage","name":"Crit Damage","short":"CDMG%","description":"Bonus damage multiplier on critical hits","default_formula":{"type":"linear","a":1,"b":150},"unit":"%","min":100,"warn_spike_ratio":2.0,"tags":["combat","offense","percent"]},{"id":"attack_speed","name":"Attack Speed","short":"ASPD","description":"Attacks per second","default_formula":{"type":"linear","a":0.02,"b":1.0},"unit":"/s","min":0.1,"warn_spike_ratio":1.5,"tags":["combat","offense","speed"]},{"id":"penetration","name":"Armor Penetration","short":"PEN","description":"Flat armor value ignored per hit","default_formula":{"type":"linear","a":1.5,"b":0},"unit":"","min":0,"warn_spike_ratio":2.0,"tags":["combat","offense"]},{"id":"hit_rate","name":"Hit Rate","short":"HIT%","description":"Chance to land an attack","default_formula":{"type":"linear","a":0.4,"b":80},"unit":"%","min":0,"max":100,"warn_spike_ratio":1.3,"tags":["combat","offense","percent"]},{"id":"range","name":"Attack Range","short":"RNG","description":"Max attack distance","default_formula":{"type":"linear","a":0.1,"b":2},"unit":"u","min":1,"warn_spike_ratio":2.0,"tags":["combat","offense"]}]},{"id":"combat_defense","name":"Combat - Defense","color":"#1e88e5","stats":[{"id":"hp","name":"HP","short":"HP","description":"Total hit points","default_formula":{"type":"exponential","a":50,"b":1.12},"unit":"","min":1,"warn_spike_ratio":3.0,"tags":["defense","core"]},{"id":"defense","name":"Defense","short":"DEF","description":"Flat physical damage reduction","default_formula":{"type":"linear","a":3,"b":5},"unit":"","min":0,"warn_spike_ratio":2.5,"tags":["defense","physical"]},{"id":"magic_defense","name":"Magic Defense","short":"MDEF","description":"Flat magical damage reduction","default_formula":{"type":"linear","a":2.5,"b":5},"unit":"","min":0,"warn_spike_ratio":2.5,"tags":["defense","magic"]},{"id":"evasion","name":"Evasion","short":"EVA%","description":"Chance to dodge attacks","default_formula":{"type":"linear","a":0.2,"b":2},"unit":"%","min":0,"max":75,"warn_spike_ratio":1.5,"tags":["defense","percent"]},{"id":"block_rate","name":"Block Rate","short":"BLK%","description":"Chance to block an attack","default_formula":{"type":"linear","a":0.3,"b":0},"unit":"%","min":0,"max":75,"warn_spike_ratio":1.5,"tags":["defense","percent"]},{"id":"block_value","name":"Block Value","short":"BLKV","description":"Damage reduced on block","default_formula":{"type":"linear","a":2,"b":5},"unit":"","min":0,"warn_spike_ratio":2.0,"tags":["defense"]},{"id":"hp_regen","name":"HP Regen","short":"REGEN","description":"HP recovered per second","default_formula":{"type":"linear","a":0.5,"b":1},"unit":"/s","min":0,"warn_spike_ratio":2.0,"tags":["defense","recovery"]},{"id":"damage_reduction","name":"Damage Reduction","short":"DR%","description":"Percent damage reduction after flat DEF","default_formula":{"type":"linear","a":0.15,"b":0},"unit":"%","min":0,"max":75,"warn_spike_ratio":1.5,"tags":["defense","percent"]}]},{"id":"resources","name":"Resources","color":"#8e24aa","stats":[{"id":"mana","name":"Mana","short":"MP","description":"Spell resource pool","default_formula":{"type":"exponential","a":30,"b":1.08},"unit":"","min":0,"warn_spike_ratio":2.5,"tags":["resource","magic"]},{"id":"mana_regen","name":"Mana Regen","short":"MREGEN","description":"Mana recovered per second","default_formula":{"type":"linear","a":0.3,"b":1},"unit":"/s","min":0,"warn_spike_ratio":2.0,"tags":["resource","recovery"]},{"id":"stamina","name":"Stamina","short":"STA","description":"Physical action resource","default_formula":{"type":"linear","a":2,"b":50},"unit":"","min":0,"warn_spike_ratio":2.0,"tags":["resource","physical"]},{"id":"energy","name":"Energy","short":"EN","description":"Generic action resource","default_formula":{"type":"linear","a":1,"b":100},"unit":"","min":0,"warn_spike_ratio":2.0,"tags":["resource"]},{"id":"shield","name":"Shield","short":"SHD","description":"Temporary HP buffer","default_formula":{"type":"exponential","a":20,"b":1.1},"unit":"","min":0,"warn_spike_ratio":2.5,"tags":["resource","defense"]}]},{"id":"progression","name":"Progression","color":"#f4a800","stats":[{"id":"xp_required","name":"XP Required","short":"XP","description":"XP to reach next level","default_formula":{"type":"exponential","a":100,"b":1.2},"unit":"","min":1,"warn_spike_ratio":4.0,"tags":["progression","core"]},{"id":"gold_drop","name":"Gold Drop","short":"GOLD","description":"Gold per kill at this level","default_formula":{"type":"exponential","a":10,"b":1.15},"unit":"g","min":0,"warn_spike_ratio":3.0,"tags":["progression","economy"]},{"id":"item_cost","name":"Item Cost","short":"COST","description":"Shop price for level-appropriate gear","default_formula":{"type":"exponential","a":50,"b":1.18},"unit":"g","min":1,"warn_spike_ratio":3.0,"tags":["progression","economy"]},{"id":"skill_points","name":"Skill Points","short":"SP","description":"Points awarded on level-up","default_formula":{"type":"linear","a":0,"b":1},"unit":"","min":0,"warn_spike_ratio":3.0,"tags":["progression"]},{"id":"stat_points","name":"Stat Points","short":"STPT","description":"Free attribute points per level","default_formula":{"type":"linear","a":0,"b":3},"unit":"","min":0,"warn_spike_ratio":2.0,"tags":["progression"]}]},{"id":"movement","name":"Movement","color":"#00897b","stats":[{"id":"speed","name":"Move Speed","short":"SPD","description":"Movement speed in u/s","default_formula":{"type":"linear","a":0.05,"b":5},"unit":"u/s","min":1,"warn_spike_ratio":1.5,"tags":["movement"]},{"id":"initiative","name":"Initiative","short":"INIT","description":"Turn order priority","default_formula":{"type":"linear","a":0.5,"b":10},"unit":"","min":1,"warn_spike_ratio":2.0,"tags":["movement","turnbased"]},{"id":"jump_height","name":"Jump Height","short":"JUMP","description":"Max jump height in units","default_formula":{"type":"linear","a":0.02,"b":2},"unit":"u","min":1,"warn_spike_ratio":1.5,"tags":["movement","platformer"]}]},{"id":"utility","name":"Utility","color":"#546e7a","stats":[{"id":"luck","name":"Luck","short":"LCK","description":"Affects loot and random events","default_formula":{"type":"linear","a":0.5,"b":5},"unit":"","min":0,"warn_spike_ratio":2.0,"tags":["utility"]},{"id":"crafting","name":"Crafting","short":"CRAFT","description":"Crafting skill level","default_formula":{"type":"linear","a":1,"b":0},"unit":"","min":0,"warn_spike_ratio":2.0,"tags":["utility","crafting"]},{"id":"stealth","name":"Stealth","short":"STL","description":"Detection and sneak attack","default_formula":{"type":"linear","a":1,"b":5},"unit":"","min":0,"warn_spike_ratio":2.0,"tags":["utility"]},{"id":"charisma","name":"Charisma","short":"CHA","description":"NPC dialogue and shop discounts","default_formula":{"type":"linear","a":0.5,"b":5},"unit":"","min":0,"warn_spike_ratio":2.0,"tags":["utility","social"]},{"id":"carry_weight","name":"Carry Weight","short":"CARRY","description":"Max item weight before encumbrance","default_formula":{"type":"linear","a":5,"b":100},"unit":"kg","min":0,"warn_spike_ratio":2.0,"tags":["utility","inventory"]},{"id":"cooldown_reduction","name":"CDR","short":"CDR%","description":"Skill cooldown reduction","default_formula":{"type":"linear","a":0.2,"b":0},"unit":"%","min":0,"max":75,"warn_spike_ratio":1.5,"tags":["utility","percent"]}]},{"id":"economy","name":"Economy","color":"#f57c00","stats":[{"id":"sell_rate","name":"Sell Rate","short":"SELL%","description":"Percentage of value when selling","default_formula":{"type":"linear","a":0.1,"b":50},"unit":"%","min":0,"max":100,"warn_spike_ratio":1.5,"tags":["economy","percent"]},{"id":"buy_discount","name":"Buy Discount","short":"DISC%","description":"Shop purchase discount","default_formula":{"type":"linear","a":0.1,"b":0},"unit":"%","min":0,"max":50,"warn_spike_ratio":1.5,"tags":["economy","percent"]},{"id":"drop_rate_bonus","name":"Drop Rate Bonus","short":"DROP%","description":"Additive bonus to item drop chance","default_formula":{"type":"linear","a":0.1,"b":0},"unit":"%","min":0,"warn_spike_ratio":2.0,"tags":["economy","loot","percent"]}]}],"balance_thresholds":{"danger_spike_ratio":3.0,"warn_spike_ratio":2.0,"danger_flat_levels":10,"warn_flat_levels":5}};
+
+const CURVE_COLORS = [
+  "#e53935","#1e88e5","#43a047","#f4a800","#8e24aa",
+  "#00897b","#f57c00","#546e7a","#d81b60","#00acc1",
+  "#6d4c41","#39a847","#c0ca33","#5e35b1","#e91e63",
+  "#ff7043","#29b6f6","#9ccc65","#ffa726","#ab47bc"
+];
+
+const statDefs = {};
+const catColors = {};
+for (const cat of STAT_DATA.categories) {
+  catColors[cat.id] = cat.color;
+  for (const s of cat.stats) {
+    statDefs[s.id] = { ...s, category: cat.id, category_name: cat.name, cat_color: cat.color };
+  }
+}
+
+const project = {
+  name: "My RPG",
+  minLevel: 1,
+  maxLevel: 100,
+  stats: {},
+  thresholds: {}
+};
+
+const state = {
+  activeStat: null,
+  curves: {},
+  issues: {},
+  dimmed: new Set(),
+  logScale: false,
+  normalize: false,
+  colorMap: {},
+  colorIdx: 0,
+  savedProjects: []
+};
+
+let mainChart = null;
+let ttkChart = null;
+let econChart = null;
+
+function getColor(statId) {
+  if (!state.colorMap[statId]) {
+    state.colorMap[statId] = CURVE_COLORS[state.colorIdx % CURVE_COLORS.length];
+    state.colorIdx++;
+  }
+  return state.colorMap[statId];
+}
+
+function evalFormula(formula, level) {
+  try {
+    switch (formula.type) {
+      case "linear":      return formula.a * level + formula.b;
+      case "exponential": return formula.a * Math.pow(formula.b, level);
+      case "polynomial":  return (formula.coefficients || []).reduce((s, c, i) => s + c * Math.pow(level, i), 0);
+      case "logarithmic": return formula.a * Math.log(level + 1) + formula.b;
+      case "sigmoid":     return formula.max / (1 + Math.exp(-formula.k * (level - formula.midpoint)));
+      case "lookup": {
+        const t = formula.table || [];
+        if (t.length === 0) return 0;
+        const ex = t.find(e => e.level === level);
+        if (ex) return ex.value;
+        const lo = [...t].reverse().find(e => e.level < level);
+        const hi = t.find(e => e.level > level);
+        if (!lo) return t[0].value;
+        if (!hi) return t[t.length-1].value;
+        return lo.value + (level - lo.level) / (hi.level - lo.level) * (hi.value - lo.value);
+      }
+      case "custom": {
+        return new Function("level","L",`"use strict";return ${formula.expression}`)(level,level);
+      }
+      default: return 0;
+    }
+  } catch(e) { return NaN; }
+}
+
+function buildCurve(statId) {
+  const s = project.stats[statId];
+  if (!s || !s.enabled) return [];
+  const pts = [];
+  for (let lv = project.minLevel; lv <= project.maxLevel; lv++) {
+    const v = evalFormula(s.formula, lv);
+    pts.push({ level: lv, value: isFinite(v) ? parseFloat(v.toFixed(4)) : null });
+  }
+  return pts;
+}
+
+function analyzeIssues(statId, curve) {
+  const def = statDefs[statId];
+  if (!def) return [];
+  const issues = [];
+  const th = {
+    warnSpike: parseFloat(document.getElementById("thWarn").value) || 2.0,
+    dangerSpike: parseFloat(document.getElementById("thDanger").value) || 3.0,
+    warnFlat: parseInt(document.getElementById("thFlatWarn").value) || 5,
+    dangerFlat: parseInt(document.getElementById("thFlatDanger").value) || 10
+  };
+
+  let flatRun = 0;
+  for (let i = 1; i < curve.length; i++) {
+    const prev = curve[i-1], curr = curve[i];
+    if (prev.value === null || curr.value === null) continue;
+    const ratio = prev.value !== 0 ? curr.value / prev.value : 1;
+    if (ratio >= th.dangerSpike) {
+      issues.push({ level: curr.level, type: "danger", kind: "spike", stat: statId, message: `${def.short} spikes ${ratio.toFixed(1)}x at level ${curr.level} (${prev.value.toFixed(1)} to ${curr.value.toFixed(1)})` });
+    } else if (ratio >= th.warnSpike) {
+      issues.push({ level: curr.level, type: "warn", kind: "spike", stat: statId, message: `${def.short} jumps ${ratio.toFixed(1)}x at level ${curr.level}` });
+    }
+    const delta = Math.abs(curr.value - prev.value);
+    if (delta < 0.01) {
+      flatRun++;
+      if (flatRun === th.dangerFlat) issues.push({ level: curr.level, type: "danger", kind: "flat", stat: statId, message: `${def.short} flat for ${flatRun} consecutive levels (ending lv ${curr.level})` });
+      else if (flatRun === th.warnFlat) issues.push({ level: curr.level, type: "warn", kind: "flat", stat: statId, message: `${def.short} stagnates for ${flatRun} levels (ending lv ${curr.level})` });
+    } else { flatRun = 0; }
+  }
+
+  const vals = curve.map(p => p.value).filter(v => v !== null && isFinite(v));
+  if (def.max !== undefined) {
+    const breach = curve.find(p => p.value !== null && p.value > def.max);
+    if (breach) issues.push({ level: breach.level, type: "danger", kind: "cap", stat: statId, message: `${def.short} exceeds cap (${def.max}${def.unit}) starting at level ${breach.level}` });
+  }
+  if (def.min !== undefined) {
+    const under = curve.find(p => p.value !== null && p.value < def.min);
+    if (under) issues.push({ level: under.level, type: "warn", kind: "floor", stat: statId, message: `${def.short} drops below floor (${def.min}${def.unit}) at level ${under.level}` });
+  }
+  return issues;
+}
+
+function recomputeAll() {
+  state.curves = {};
+  state.issues = {};
+  let totalIssues = 0, totalDanger = 0;
+  for (const [id, s] of Object.entries(project.stats)) {
+    if (!s.enabled) continue;
+    const curve = buildCurve(id);
+    state.curves[id] = curve;
+    const issues = analyzeIssues(id, curve);
+    state.issues[id] = issues;
+    totalIssues += issues.length;
+    totalDanger += issues.filter(i => i.type === "danger").length;
+  }
+  updateChart();
+  updateIssuesTab(totalIssues, totalDanger);
+  updateDataTable();
+  updateMetrics(totalIssues, totalDanger);
+  updateTopbar();
+  updateStatDots();
+  if (state.activeStat) updateInspector(state.activeStat);
+  updateTTKChart();
+}
+
+function updateChart() {
+  const labels = [];
+  for (let lv = project.minLevel; lv <= project.maxLevel; lv++) labels.push(lv);
+
+  const datasets = [];
+  const legendEl = document.getElementById("chartLegend");
+  legendEl.innerHTML = "";
+
+  const activeIds = Object.keys(state.curves);
+
+  for (const id of activeIds) {
+    const curve = state.curves[id];
+    const def = statDefs[id];
+    if (!curve || !def) continue;
+    const color = getColor(id);
+    const dimmed = state.dimmed.has(id);
+
+    let data = curve.map(p => p.value);
+    if (state.normalize) {
+      const max = Math.max(...data.filter(v => v !== null && isFinite(v)));
+      if (max > 0) data = data.map(v => v !== null ? parseFloat((v / max * 100).toFixed(2)) : null);
+    }
+
+    datasets.push({
+      label: def.name,
+      data,
+      borderColor: color,
+      backgroundColor: color + "18",
+      borderWidth: dimmed ? 0.5 : 1.5,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      tension: 0.3,
+      hidden: dimmed,
+      statId: id
+    });
+
+    const li = document.createElement("div");
+    li.className = "legend-item" + (dimmed ? " dimmed" : "");
+    li.innerHTML = `<div class="legend-dot" style="background:${color}"></div>${def.short}`;
+    li.onclick = () => toggleDim(id);
+    legendEl.appendChild(li);
+  }
+
+  if (!mainChart) {
+    const ctx = document.getElementById("mainChart").getContext("2d");
+    mainChart = new Chart(ctx, {
+      type: "line",
+      data: { labels, datasets },
+      options: chartOptions(false)
+    });
+  } else {
+    mainChart.data.labels = labels;
+    mainChart.data.datasets = datasets;
+    mainChart.options = chartOptions(state.logScale);
+    mainChart.update("none");
+  }
+}
+
+function chartOptions(logScale) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#1e2533",
+        borderColor: "rgba(255,255,255,0.1)",
+        borderWidth: 1,
+        titleColor: "#8b919e",
+        bodyColor: "#e8eaf0",
+        padding: 10,
+        callbacks: {
+          title: items => "Level " + items[0].label,
+          label: item => {
+            const id = item.dataset.statId;
+            const def = statDefs[id];
+            const unit = def ? (def.unit || "") : "";
+            const norm = state.normalize ? "%" : unit;
+            return ` ${item.dataset.label}: ${item.parsed.y !== null ? item.parsed.y.toFixed(2) : "N/A"}${norm}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: "rgba(255,255,255,0.04)" },
+        ticks: { color: "#555e6e", font: { size: 10 }, maxTicksLimit: 20 }
+      },
+      y: {
+        type: logScale ? "logarithmic" : "linear",
+        grid: { color: "rgba(255,255,255,0.04)" },
+        ticks: { color: "#555e6e", font: { size: 10 } }
+      }
+    }
+  };
+}
+
+function toggleDim(id) {
+  if (state.dimmed.has(id)) state.dimmed.delete(id);
+  else state.dimmed.add(id);
+  updateChart();
+}
+
+function toggleLogScale() {
+  state.logScale = !state.logScale;
+  document.getElementById("logLabel").textContent = state.logScale ? "on" : "off";
+  if (mainChart) { mainChart.options = chartOptions(state.logScale); mainChart.update("none"); }
+}
+
+function normalizeView() {
+  state.normalize = !state.normalize;
+  document.getElementById("normLabel").textContent = state.normalize ? "on" : "off";
+  updateChart();
+}
+
+function updateIssuesTab(total, danger) {
+  const badge = document.getElementById("issueTabBadge");
+  if (total > 0) {
+    badge.innerHTML = `<span class="badge ${danger > 0 ? "badge-danger" : "badge-warn"}">${total}</span>`;
+  } else {
+    badge.innerHTML = "";
+  }
+
+  const list = document.getElementById("issuesList");
+  const allIssues = Object.values(state.issues).flat().sort((a, b) => {
+    if (a.type !== b.type) return a.type === "danger" ? -1 : 1;
+    return a.level - b.level;
+  });
+
+  if (allIssues.length === 0) {
+    list.innerHTML = '<div class="empty-state">No balance issues detected.</div>';
+    return;
+  }
+
+  list.innerHTML = allIssues.map(issue => {
+    const def = statDefs[issue.stat];
+    const color = getColor(issue.stat);
+    return `<div class="issue-card ${issue.type}">
+      <div class="issue-icon">${issue.type === "danger" ? "!" : "!"}</div>
+      <div class="issue-body">
+        <div class="issue-title">${issue.message}</div>
+        <div class="issue-sub">${def ? def.name : issue.stat} - ${issue.kind}</div>
+      </div>
+      <div class="issue-level">Lv ${issue.level}</div>
+    </div>`;
+  }).join("");
+}
+
+function updateDataTable() {
+  const ids = Object.keys(state.curves);
+  const table = document.getElementById("dataTable");
+
+  const headerRow = table.querySelector("thead tr");
+  headerRow.innerHTML = "<th>LV</th>" + ids.map(id => {
+    const def = statDefs[id];
+    const color = getColor(id);
+    return `<th style="color:${color}">${def ? def.short : id}</th>`;
+  }).join("");
+
+  const tbody = table.querySelector("tbody");
+  const rows = [];
+  for (let lv = project.minLevel; lv <= project.maxLevel; lv++) {
+    const cells = ids.map(id => {
+      const curve = state.curves[id];
+      const pt = curve ? curve.find(p => p.level === lv) : null;
+      const val = pt ? pt.value : null;
+      if (val === null) return "<td>-</td>";
+      return `<td>${val >= 1000 ? val.toFixed(0) : val.toFixed(2)}</td>`;
+    });
+    rows.push(`<tr><td>${lv}</td>${cells.join("")}</tr>`);
+  }
+  tbody.innerHTML = rows.join("");
+}
+
+function updateMetrics(totalIssues, totalDanger) {
+  const active = Object.keys(state.curves).length;
+  const steps = project.maxLevel - project.minLevel + 1;
+  document.getElementById("mActive").textContent = active;
+  document.getElementById("mRange").textContent = project.minLevel + "-" + project.maxLevel;
+  document.getElementById("mRange").nextElementSibling.textContent = steps + " steps";
+  document.getElementById("mIssues").textContent = totalIssues;
+  document.getElementById("mDanger").textContent = totalDanger;
+}
+
+function updateTopbar() {
+  document.getElementById("tbProjectName").textContent = project.name;
+  const total = Object.values(state.issues).reduce((s, a) => s + a.length, 0);
+  const danger = Object.values(state.issues).flat().filter(i => i.type === "danger").length;
+  document.getElementById("tbIssueCount").textContent = total > 0
+    ? `${danger > 0 ? danger + " danger " : ""}${total} issues`
+    : "";
+}
+
+function updateStatDots() {
+  document.querySelectorAll(".stat-issue-dot").forEach(dot => {
+    const id = dot.dataset.statId;
+    const issues = state.issues[id] || [];
+    const hasDanger = issues.some(i => i.type === "danger");
+    const hasWarn = issues.some(i => i.type === "warn");
+    dot.style.background = hasDanger ? "var(--danger)" : hasWarn ? "var(--warn)" : "transparent";
+  });
+}
+
+function updateInspector(statId) {
+  const def = statDefs[statId];
+  if (!def) return;
+  const s = project.stats[statId];
+  const curve = state.curves[statId] || [];
+  const issues = state.issues[statId] || [];
+  const vals = curve.map(p => p.value).filter(v => v !== null && isFinite(v));
+  const color = getColor(statId);
+
+  const hint = document.getElementById("inspectorHint");
+  hint.style.display = "none";
+
+  const firstVal = vals.length > 0 ? vals[0] : 0;
+  const lastVal = vals.length > 0 ? vals[vals.length-1] : 0;
+  const totalGrowth = firstVal > 0 ? ((lastVal - firstVal) / firstVal * 100).toFixed(1) : "N/A";
+
+  const growthRates = [];
+  for (let i = 1; i < curve.length; i++) {
+    if (curve[i-1].value && curve[i-1].value > 0) {
+      growthRates.push((curve[i].value - curve[i-1].value) / curve[i-1].value * 100);
+    }
+  }
+  const avgGrowth = growthRates.length > 0 ? (growthRates.reduce((a,b)=>a+b,0)/growthRates.length).toFixed(2) : "N/A";
+  const maxGrowth = growthRates.length > 0 ? Math.max(...growthRates).toFixed(2) : "N/A";
+
+  const issueHtml = issues.length === 0
+    ? `<div style="font-size:11px;color:var(--ok)">No issues found</div>`
+    : issues.map(iss => `<div style="font-size:11px;color:${iss.type==="danger"?"var(--danger)":"var(--warn)"};padding:3px 0;border-bottom:1px solid var(--border)">${iss.message}</div>`).join("");
+
+  document.getElementById("inspectorContent").innerHTML = `
+    <div class="inspector-stat">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:12px;height:12px;border-radius:50%;background:${color}"></div>
+        <span style="font-size:14px;font-weight:600;color:var(--text)">${def.name}</span>
+        <span style="font-size:10px;color:var(--text3);font-family:monospace">${def.short}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text2)">${def.description}</div>
+
+      <div class="info-card">
+        <div class="info-card-title">Stats</div>
+        <div class="info-row"><span class="info-row-label">At Lv ${project.minLevel}</span><span class="info-row-val">${firstVal.toFixed(2)}${def.unit||""}</span></div>
+        <div class="info-row"><span class="info-row-label">At Lv ${project.maxLevel}</span><span class="info-row-val">${lastVal.toFixed(2)}${def.unit||""}</span></div>
+        <div class="info-row"><span class="info-row-label">Total growth</span><span class="info-row-val">${totalGrowth}%</span></div>
+        <div class="info-row"><span class="info-row-label">Avg growth/lv</span><span class="info-row-val">${avgGrowth}%</span></div>
+        <div class="info-row"><span class="info-row-label">Max growth/lv</span><span class="info-row-val">${maxGrowth}%</span></div>
+        ${def.max !== undefined ? `<div class="info-row"><span class="info-row-label">Cap</span><span class="info-row-val">${def.max}${def.unit||""}</span></div>` : ""}
+      </div>
+
+      <div class="info-card">
+        <div class="info-card-title">Balance check</div>
+        ${issueHtml}
+      </div>
+
+      <div class="info-card">
+        <div class="info-card-title">Metadata</div>
+        <div class="info-row"><span class="info-row-label">Category</span><span class="info-row-val">${def.category_name}</span></div>
+        <div class="info-row"><span class="info-row-label">Tags</span><span class="info-row-val">${def.tags.join(", ")}</span></div>
+        <div class="info-row"><span class="info-row-label">Unit</span><span class="info-row-val">${def.unit||"none"}</span></div>
+        ${def.min !== undefined ? `<div class="info-row"><span class="info-row-label">Floor</span><span class="info-row-val">${def.min}</span></div>` : ""}
+      </div>
+    </div>`;
+}
+
+function updateTTKChart() {
+  const atkCurve = state.curves["attack"];
+  const hpCurve  = state.curves["hp"];
+  const goldCurve = state.curves["gold_drop"];
+  const costCurve = state.curves["item_cost"];
+
+  const ttkLabels = [];
+  const ttkData = [];
+  if (atkCurve && hpCurve) {
+    const len = Math.min(atkCurve.length, hpCurve.length);
+    for (let i = 0; i < len; i++) {
+      ttkLabels.push(atkCurve[i].level);
+      const atk = atkCurve[i].value, hp = hpCurve[i].value;
+      ttkData.push(atk && atk > 0 ? parseFloat((hp / atk).toFixed(2)) : null);
+    }
+  }
+
+  const econLabels = [];
+  const econData = [];
+  if (goldCurve && costCurve) {
+    const len = Math.min(goldCurve.length, costCurve.length);
+    for (let i = 0; i < len; i++) {
+      econLabels.push(goldCurve[i].level);
+      const g = goldCurve[i].value, c = costCurve[i].value;
+      econData.push(g && g > 0 ? parseFloat((c / g).toFixed(2)) : null);
+    }
+  }
+
+  if (ttkChart) { ttkChart.destroy(); ttkChart = null; }
+  if (econChart) { econChart.destroy(); econChart = null; }
+
+  const baseOpts = {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: "#1e2533", borderColor: "rgba(255,255,255,0.1)", borderWidth: 1, titleColor: "#8b919e", bodyColor: "#e8eaf0" } },
+    scales: {
+      x: { grid: { color: "rgba(255,255,255,0.04)" }, ticks: { color: "#555e6e", font: { size: 10 }, maxTicksLimit: 20 } },
+      y: { grid: { color: "rgba(255,255,255,0.04)" }, ticks: { color: "#555e6e", font: { size: 10 } } }
+    }
+  };
+
+  const ttkCtx = document.getElementById("ttkChart").getContext("2d");
+  ttkChart = new Chart(ttkCtx, {
+    type: "line",
+    data: {
+      labels: ttkLabels.length > 0 ? ttkLabels : [1],
+      datasets: [{
+        label: "Hits to kill", data: ttkData.length > 0 ? ttkData : [null],
+        borderColor: "#e53935", backgroundColor: "#e5393520", borderWidth: 1.5, pointRadius: 0, tension: 0.3
+      }]
+    },
+    options: { ...baseOpts, plugins: { ...baseOpts.plugins, tooltip: { ...baseOpts.plugins.tooltip, callbacks: { title: i => "Level " + i[0].label, label: i => ` Hits to kill: ${i.parsed.y !== null ? i.parsed.y.toFixed(1) : "N/A"}` } } } }
+  });
+
+  const econCtx = document.getElementById("econChart").getContext("2d");
+  econChart = new Chart(econCtx, {
+    type: "line",
+    data: {
+      labels: econLabels.length > 0 ? econLabels : [1],
+      datasets: [{
+        label: "Kills to buy", data: econData.length > 0 ? econData : [null],
+        borderColor: "#f4a800", backgroundColor: "#f4a80020", borderWidth: 1.5, pointRadius: 0, tension: 0.3
+      }]
+    },
+    options: { ...baseOpts, plugins: { ...baseOpts.plugins, tooltip: { ...baseOpts.plugins.tooltip, callbacks: { title: i => "Level " + i[0].label, label: i => ` Kills to buy gear: ${i.parsed.y !== null ? i.parsed.y.toFixed(1) : "N/A"}` } } } }
+  });
+}
+
+function buildStatList() {
+  const el = document.getElementById("statList");
+  el.innerHTML = "";
+  for (const cat of STAT_DATA.categories) {
+    const section = document.createElement("div");
+    section.className = "stat-cat";
+
+    const header = document.createElement("div");
+    header.className = "cat-header";
+    header.innerHTML = `<div class="cat-dot" style="background:${cat.color}"></div><span class="cat-name">${cat.name}</span><span class="cat-chevron">&#9658;</span>`;
+    header.onclick = () => {
+      const statsEl = section.querySelector(".cat-stats");
+      const chevron = header.querySelector(".cat-chevron");
+      statsEl.classList.toggle("open");
+      chevron.classList.toggle("open");
+    };
+
+    const statsEl = document.createElement("div");
+    statsEl.className = "cat-stats";
+
+    for (const stat of cat.stats) {
+      if (!project.stats[stat.id]) {
+        project.stats[stat.id] = { formula: JSON.parse(JSON.stringify(stat.default_formula)), enabled: false };
+      }
+
+      const row = document.createElement("div");
+      row.className = "stat-row";
+      row.id = "row_" + stat.id;
+      row.innerHTML = `
+        <input type="checkbox" class="stat-check" id="chk_${stat.id}" ${project.stats[stat.id].enabled ? "checked" : ""} />
+        <span class="stat-name">${stat.name}</span>
+        <span class="stat-short">${stat.short}</span>
+        <div class="stat-issue-dot" data-stat-id="${stat.id}"></div>`;
+
+      row.querySelector("input").addEventListener("change", (e) => {
+        project.stats[stat.id].enabled = e.target.checked;
+        if (e.target.checked) recomputeAll();
+        else {
+          delete state.curves[stat.id];
+          delete state.issues[stat.id];
+          updateChart();
+          updateIssuesTab(
+            Object.values(state.issues).reduce((s,a)=>s+a.length,0),
+            Object.values(state.issues).flat().filter(i=>i.type==="danger").length
+          );
+          updateDataTable();
+          updateMetrics(
+            Object.values(state.issues).reduce((s,a)=>s+a.length,0),
+            Object.values(state.issues).flat().filter(i=>i.type==="danger").length
+          );
+          updateTopbar();
+        }
+      });
+
+      row.addEventListener("click", (e) => {
+        if (e.target.tagName === "INPUT") return;
+        document.querySelectorAll(".stat-row").forEach(r => r.classList.remove("active"));
+        row.classList.add("active");
+        state.activeStat = stat.id;
+        renderFormulaEditor(stat.id);
+        updateInspector(stat.id);
+        document.getElementById("inspectorHint").style.display = "none";
+      });
+
+      statsEl.appendChild(row);
+    }
+
+    section.appendChild(header);
+    section.appendChild(statsEl);
+    el.appendChild(section);
+  }
+}
+
+function renderFormulaEditor(statId) {
+  const s = project.stats[statId];
+  const def = statDefs[statId];
+  if (!s || !def) return;
+
+  const f = s.formula;
+  const color = def.cat_color;
+
+  const types = [
+    { id: "linear", label: "Linear" },
+    { id: "exponential", label: "Exponential" },
+    { id: "polynomial", label: "Polynomial" },
+    { id: "logarithmic", label: "Logarithmic" },
+    { id: "sigmoid", label: "Sigmoid" },
+    { id: "lookup", label: "Lookup" },
+    { id: "custom", label: "Custom" }
+  ];
+
+  let paramHtml = "";
+  switch (f.type) {
+    case "linear":
+      paramHtml = `<div class="row2">
+        <div class="field"><label>a (slope)</label><input type="number" step="any" id="fp_a" value="${f.a}" onchange="updateFormulaParam('a',parseFloat(this.value))" /></div>
+        <div class="field"><label>b (intercept)</label><input type="number" step="any" id="fp_b" value="${f.b}" onchange="updateFormulaParam('b',parseFloat(this.value))" /></div>
+      </div>
+      <div class="formula-preview" id="fpreview">stat = ${f.a} * level + ${f.b}</div>`;
+      break;
+    case "exponential":
+      paramHtml = `<div class="row2">
+        <div class="field"><label>a (base value)</label><input type="number" step="any" id="fp_a" value="${f.a}" onchange="updateFormulaParam('a',parseFloat(this.value))" /></div>
+        <div class="field"><label>b (growth rate)</label><input type="number" step="any" id="fp_b" value="${f.b}" onchange="updateFormulaParam('b',parseFloat(this.value))" /></div>
+      </div>
+      <div class="formula-preview" id="fpreview">stat = ${f.a} * ${f.b}^level</div>`;
+      break;
+    case "polynomial":
+      paramHtml = `<div class="field"><label>Coefficients (c0, c1, c2... for c0 + c1*L + c2*L^2)</label>
+        <input type="text" id="fp_coeffs" value="${(f.coefficients||[0,1]).join(", ")}" onchange="updatePolyCoeffs(this.value)" />
+      </div>
+      <div class="formula-preview" id="fpreview">${polyPreview(f.coefficients||[0,1])}</div>`;
+      break;
+    case "logarithmic":
+      paramHtml = `<div class="row2">
+        <div class="field"><label>a (multiplier)</label><input type="number" step="any" id="fp_a" value="${f.a||1}" onchange="updateFormulaParam('a',parseFloat(this.value))" /></div>
+        <div class="field"><label>b (offset)</label><input type="number" step="any" id="fp_b" value="${f.b||0}" onchange="updateFormulaParam('b',parseFloat(this.value))" /></div>
+      </div>
+      <div class="formula-preview" id="fpreview">stat = ${f.a||1} * log(level+1) + ${f.b||0}</div>`;
+      break;
+    case "sigmoid":
+      paramHtml = `<div class="row3">
+        <div class="field"><label>max</label><input type="number" step="any" id="fp_max" value="${f.max||100}" onchange="updateFormulaParam('max',parseFloat(this.value))" /></div>
+        <div class="field"><label>k (steepness)</label><input type="number" step="any" id="fp_k" value="${f.k||0.1}" onchange="updateFormulaParam('k',parseFloat(this.value))" /></div>
+        <div class="field"><label>midpoint</label><input type="number" step="any" id="fp_mid" value="${f.midpoint||50}" onchange="updateFormulaParam('midpoint',parseFloat(this.value))" /></div>
+      </div>
+      <div class="formula-preview" id="fpreview">stat = ${f.max||100} / (1 + e^(-${f.k||0.1} * (level - ${f.midpoint||50})))</div>`;
+      break;
+    case "lookup":
+      const rows = (f.table||[]).map((e,i) => `<div class="lookup-row">
+        <input type="number" style="width:70px" value="${e.level}" onchange="updateLookupRow(${i},'level',parseInt(this.value))" placeholder="Lv"/>
+        <input type="number" step="any" value="${e.value}" onchange="updateLookupRow(${i},'value',parseFloat(this.value))" placeholder="Value"/>
+        <button class="btn btn-sm btn-danger" onclick="removeLookupRow(${i})">x</button>
+      </div>`).join("");
+      paramHtml = `<div class="lookup-table" id="lookupRows">${rows}</div>
+        <button class="btn btn-sm" onclick="addLookupRow()" style="margin-top:4px">+ Add row</button>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">Values between defined levels are interpolated linearly.</div>`;
+      break;
+    case "custom":
+      paramHtml = `<div class="field">
+        <label>Expression (use "level" or "L" as variable)</label>
+        <textarea id="fp_expr" rows="3" onchange="updateFormulaParam('expression',this.value)">${f.expression||"level * 5 + 10"}</textarea>
+      </div>
+      <div style="font-size:10px;color:var(--text3)">Examples: Math.pow(level,1.5)*3, level&lt;20?level*5:100+level*3</div>`;
+      break;
+  }
+
+  document.getElementById("formulaEditor").innerHTML = `
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${color}"></div>
+      <span style="font-size:12px;font-weight:600;color:var(--text)">${def.name}</span>
+    </div>
+    <div class="formula-type-tabs">
+      ${types.map(t => `<button class="ftype-btn ${f.type===t.id?"active":""}" onclick="setFormulaType('${t.id}')">${t.label}</button>`).join("")}
+    </div>
+    ${paramHtml}
+    <button class="btn btn-sm" onclick="resetFormula('${statId}')" style="margin-top:4px">Reset to default</button>`;
+}
+
+function polyPreview(coeffs) {
+  return "stat = " + coeffs.map((c, i) => {
+    if (i === 0) return c;
+    if (i === 1) return `${c}*L`;
+    return `${c}*L^${i}`;
+  }).join(" + ");
+}
+
+function setFormulaType(type) {
+  if (!state.activeStat) return;
+  const defaults = { linear: {type:"linear",a:5,b:10}, exponential: {type:"exponential",a:10,b:1.1}, polynomial: {type:"polynomial",coefficients:[0,5,0.1]}, logarithmic: {type:"logarithmic",a:10,b:0}, sigmoid: {type:"sigmoid",max:100,k:0.1,midpoint:50}, lookup: {type:"lookup",table:[{level:1,value:10},{level:10,value:50},{level:50,value:200},{level:100,value:500}]}, custom: {type:"custom",expression:"level * 5 + 10"} };
+  project.stats[state.activeStat].formula = { ...(defaults[type] || {type:"linear",a:1,b:0}) };
+  renderFormulaEditor(state.activeStat);
+  if (project.stats[state.activeStat].enabled) recomputeAll();
+}
+
+function updateFormulaParam(key, val) {
+  if (!state.activeStat) return;
+  project.stats[state.activeStat].formula[key] = val;
+  updateFormulaPreview();
+  if (project.stats[state.activeStat].enabled) recomputeAll();
+}
+
+function updatePolyCoeffs(str) {
+  if (!state.activeStat) return;
+  try {
+    const coeffs = str.split(",").map(s => parseFloat(s.trim()));
+    if (coeffs.every(isFinite)) {
+      project.stats[state.activeStat].formula.coefficients = coeffs;
+      const prev = document.getElementById("fpreview");
+      if (prev) prev.textContent = polyPreview(coeffs);
+      if (project.stats[state.activeStat].enabled) recomputeAll();
+    }
+  } catch(e) {}
+}
+
+function updateFormulaPreview() {
+  const f = project.stats[state.activeStat]?.formula;
+  if (!f) return;
+  const prev = document.getElementById("fpreview");
+  if (!prev) return;
+  switch (f.type) {
+    case "linear":      prev.textContent = `stat = ${f.a} * level + ${f.b}`; break;
+    case "exponential": prev.textContent = `stat = ${f.a} * ${f.b}^level`; break;
+    case "logarithmic": prev.textContent = `stat = ${f.a} * log(level+1) + ${f.b}`; break;
+    case "sigmoid":     prev.textContent = `stat = ${f.max} / (1 + e^(-${f.k} * (level - ${f.midpoint})))`; break;
+    default: break;
+  }
+}
+
+function updateLookupRow(idx, key, val) {
+  if (!state.activeStat) return;
+  const table = project.stats[state.activeStat].formula.table;
+  if (table && table[idx]) { table[idx][key] = val; table.sort((a,b)=>a.level-b.level); }
+  if (project.stats[state.activeStat].enabled) recomputeAll();
+}
+
+function addLookupRow() {
+  if (!state.activeStat) return;
+  const f = project.stats[state.activeStat].formula;
+  const table = f.table || [];
+  const lastLv = table.length > 0 ? table[table.length-1].level : 0;
+  const lastVal = table.length > 0 ? table[table.length-1].value : 0;
+  table.push({ level: lastLv + 10, value: lastVal + 50 });
+  f.table = table;
+  renderFormulaEditor(state.activeStat);
+  if (project.stats[state.activeStat].enabled) recomputeAll();
+}
+
+function removeLookupRow(idx) {
+  if (!state.activeStat) return;
+  const f = project.stats[state.activeStat].formula;
+  if (f.table) { f.table.splice(idx, 1); }
+  renderFormulaEditor(state.activeStat);
+  if (project.stats[state.activeStat].enabled) recomputeAll();
+}
+
+function resetFormula(statId) {
+  const def = statDefs[statId];
+  if (!def) return;
+  project.stats[statId].formula = JSON.parse(JSON.stringify(def.default_formula));
+  renderFormulaEditor(statId);
+  if (project.stats[statId].enabled) recomputeAll();
+  showToast("Formula reset to default");
+}
+
+function onLevelRangeChange() {
+  project.minLevel = parseInt(document.getElementById("minLevel").value) || 1;
+  project.maxLevel = parseInt(document.getElementById("maxLevel").value) || 100;
+  if (project.minLevel >= project.maxLevel) {
+    project.maxLevel = project.minLevel + 1;
+    document.getElementById("maxLevel").value = project.maxLevel;
+  }
+  recomputeAll();
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+  el.classList.add("active");
+  const tc = document.getElementById("tab-" + name);
+  if (tc) tc.classList.add("active");
+  if (name === "table") updateDataTable();
+}
+
+function exportJSON() {
+  const data = {
+    name: project.name,
+    version: "1.0.0",
+    exported: new Date().toISOString(),
+    level_range: { min: project.minLevel, max: project.maxLevel },
+    thresholds: {
+      warn_spike: parseFloat(document.getElementById("thWarn").value),
+      danger_spike: parseFloat(document.getElementById("thDanger").value),
+      warn_flat: parseInt(document.getElementById("thFlatWarn").value),
+      danger_flat: parseInt(document.getElementById("thFlatDanger").value)
+    },
+    stats: project.stats,
+    curves: state.curves,
+    issues: state.issues
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.download = (project.name.replace(/\s+/g, "_").toLowerCase() || "project") + "_stats.json";
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast("JSON exported");
+}
+
+function exportCSV() {
+  const ids = Object.keys(state.curves);
+  if (ids.length === 0) { showToast("No active stats to export"); return; }
+  const defs = ids.map(id => statDefs[id]).filter(Boolean);
+  const header = ["level", ...defs.map(d => d.short)].join(",");
+  const rows = [];
+  for (let lv = project.minLevel; lv <= project.maxLevel; lv++) {
+    const cells = [lv];
+    for (const id of ids) {
+      const pt = (state.curves[id] || []).find(p => p.level === lv);
+      cells.push(pt && pt.value !== null ? pt.value : "");
+    }
+    rows.push(cells.join(","));
+  }
+  const csv = [header, ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.download = (project.name.replace(/\s+/g, "_").toLowerCase() || "project") + "_curves.csv";
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast("CSV exported");
+}
+
+function saveProject() {
+  const data = {
+    name: project.name,
+    version: "1.0.0",
+    saved: new Date().toISOString(),
+    level_range: { min: project.minLevel, max: project.maxLevel },
+    thresholds: {
+      warn_spike: parseFloat(document.getElementById("thWarn").value),
+      danger_spike: parseFloat(document.getElementById("thDanger").value),
+      warn_flat: parseInt(document.getElementById("thFlatWarn").value),
+      danger_flat: parseInt(document.getElementById("thFlatDanger").value)
+    },
+    stats: project.stats
+  };
+  const item = { id: Date.now(), ...data };
+  state.savedProjects.unshift(item);
+  renderSavedList();
+  showToast("Project saved");
+}
+
+function renderSavedList() {
+  const el = document.getElementById("savedList");
+  if (state.savedProjects.length === 0) {
+    el.innerHTML = '<div class="empty-state">No saved projects yet.</div>';
+    return;
+  }
+  el.innerHTML = state.savedProjects.map(p => `
+    <div class="saved-item">
+      <div class="saved-item-info">
+        <div class="saved-item-name">${p.name}</div>
+        <div class="saved-item-meta">Lv ${p.level_range.min}-${p.level_range.max} &middot; ${Object.keys(p.stats).filter(id=>p.stats[id].enabled).length} active stats &middot; ${new Date(p.saved).toLocaleTimeString()}</div>
+      </div>
+      <button class="btn btn-sm" onclick="loadSavedProject(${p.id})">Load</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteSaved(${p.id})">x</button>
+    </div>`).join("");
+}
+
+function loadSavedProject(id) {
+  const p = state.savedProjects.find(s => s.id === id);
+  if (!p) return;
+  project.name = p.name;
+  project.minLevel = p.level_range.min;
+  project.maxLevel = p.level_range.max;
+  for (const [statId, s] of Object.entries(p.stats)) {
+    project.stats[statId] = JSON.parse(JSON.stringify(s));
+  }
+  document.getElementById("projectName").value = p.name;
+  document.getElementById("minLevel").value = p.level_range.min;
+  document.getElementById("maxLevel").value = p.level_range.max;
+  document.getElementById("thWarn").value = p.thresholds?.warn_spike || 2.0;
+  document.getElementById("thDanger").value = p.thresholds?.danger_spike || 3.0;
+  document.getElementById("thFlatWarn").value = p.thresholds?.warn_flat || 5;
+  document.getElementById("thFlatDanger").value = p.thresholds?.danger_flat || 10;
+  buildStatList();
+  recomputeAll();
+  switchTab("curves", document.querySelector(".tab"));
+  showToast("Loaded: " + p.name);
+}
+
+function deleteSaved(id) {
+  state.savedProjects = state.savedProjects.filter(s => s.id !== id);
+  renderSavedList();
+}
+
+function loadProjectFile() {
+  document.getElementById("fileInput").click();
+}
+
+function onFileLoad(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      project.name = data.name || "Imported";
+      project.minLevel = data.level_range?.min || 1;
+      project.maxLevel = data.level_range?.max || 100;
+      for (const [statId, s] of Object.entries(data.stats || {})) {
+        project.stats[statId] = JSON.parse(JSON.stringify(s));
+      }
+      document.getElementById("projectName").value = project.name;
+      document.getElementById("minLevel").value = project.minLevel;
+      document.getElementById("maxLevel").value = project.maxLevel;
+      if (data.thresholds) {
+        if (data.thresholds.warn_spike) document.getElementById("thWarn").value = data.thresholds.warn_spike;
+        if (data.thresholds.danger_spike) document.getElementById("thDanger").value = data.thresholds.danger_spike;
+        if (data.thresholds.warn_flat) document.getElementById("thFlatWarn").value = data.thresholds.warn_flat;
+        if (data.thresholds.danger_flat) document.getElementById("thFlatDanger").value = data.thresholds.danger_flat;
+      }
+      buildStatList();
+      recomputeAll();
+      showToast("Loaded: " + project.name);
+    } catch(err) {
+      showToast("Failed to load file: " + err.message);
+    }
+    e.target.value = "";
+  };
+  reader.readAsText(file);
+}
+
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+buildStatList();
+
+const defaultEnabled = ["attack","hp","defense","xp_required","gold_drop","item_cost","mana","speed"];
+for (const id of defaultEnabled) {
+  if (project.stats[id]) {
+    project.stats[id].enabled = true;
+    document.getElementById("chk_" + id).checked = true;
+  }
+}
+
+const combatCat = document.querySelector(".cat-stats");
+if (combatCat) { combatCat.classList.add("open"); combatCat.previousElementSibling.querySelector(".cat-chevron").classList.add("open"); }
+
+recomputeAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,553 @@
+{
+  "version": "1.0.0",
+  "categories": [
+    {
+      "id": "combat_offense",
+      "name": "Combat - Offense",
+      "color": "#e53935",
+      "stats": [
+        {
+          "id": "attack",
+          "name": "Attack",
+          "short": "ATK",
+          "description": "Base physical damage dealt per hit",
+          "default_formula": { "type": "linear", "a": 5, "b": 10 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.5,
+          "tags": ["combat", "offense", "physical"]
+        },
+        {
+          "id": "magic_attack",
+          "name": "Magic Attack",
+          "short": "MATK",
+          "description": "Base magical damage dealt per hit",
+          "default_formula": { "type": "exponential", "a": 4, "b": 1.08 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.5,
+          "tags": ["combat", "offense", "magic"]
+        },
+        {
+          "id": "crit_chance",
+          "name": "Crit Chance",
+          "short": "CRIT%",
+          "description": "Probability of landing a critical strike",
+          "default_formula": { "type": "linear", "a": 0.3, "b": 5 },
+          "unit": "%",
+          "min": 0,
+          "max": 100,
+          "warn_flat_after": 30,
+          "warn_spike_ratio": 1.5,
+          "tags": ["combat", "offense", "percent"]
+        },
+        {
+          "id": "crit_damage",
+          "name": "Crit Damage",
+          "short": "CDMG%",
+          "description": "Bonus damage multiplier on critical hits",
+          "default_formula": { "type": "linear", "a": 1, "b": 150 },
+          "unit": "%",
+          "min": 100,
+          "warn_flat_after": 40,
+          "warn_spike_ratio": 2.0,
+          "tags": ["combat", "offense", "percent"]
+        },
+        {
+          "id": "attack_speed",
+          "name": "Attack Speed",
+          "short": "ASPD",
+          "description": "Number of attacks per second or action interval",
+          "default_formula": { "type": "linear", "a": 0.02, "b": 1.0 },
+          "unit": "/s",
+          "min": 0.1,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 1.5,
+          "tags": ["combat", "offense", "speed"]
+        },
+        {
+          "id": "penetration",
+          "name": "Armor Penetration",
+          "short": "PEN",
+          "description": "Flat armor value ignored on each hit",
+          "default_formula": { "type": "linear", "a": 1.5, "b": 0 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 30,
+          "warn_spike_ratio": 2.0,
+          "tags": ["combat", "offense"]
+        },
+        {
+          "id": "hit_rate",
+          "name": "Hit Rate",
+          "short": "HIT%",
+          "description": "Chance to successfully land an attack",
+          "default_formula": { "type": "linear", "a": 0.4, "b": 80 },
+          "unit": "%",
+          "min": 0,
+          "max": 100,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 1.3,
+          "tags": ["combat", "offense", "percent"]
+        },
+        {
+          "id": "range",
+          "name": "Attack Range",
+          "short": "RNG",
+          "description": "Maximum distance at which attacks can land",
+          "default_formula": { "type": "linear", "a": 0.1, "b": 2 },
+          "unit": "u",
+          "min": 1,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.0,
+          "tags": ["combat", "offense"]
+        }
+      ]
+    },
+    {
+      "id": "combat_defense",
+      "name": "Combat - Defense",
+      "color": "#1e88e5",
+      "stats": [
+        {
+          "id": "hp",
+          "name": "HP",
+          "short": "HP",
+          "description": "Total hit points before the unit is defeated",
+          "default_formula": { "type": "exponential", "a": 50, "b": 1.12 },
+          "unit": "",
+          "min": 1,
+          "warn_flat_after": 30,
+          "warn_spike_ratio": 3.0,
+          "tags": ["defense", "core"]
+        },
+        {
+          "id": "defense",
+          "name": "Defense",
+          "short": "DEF",
+          "description": "Flat damage reduction applied before calculating damage taken",
+          "default_formula": { "type": "linear", "a": 3, "b": 5 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.5,
+          "tags": ["defense", "physical"]
+        },
+        {
+          "id": "magic_defense",
+          "name": "Magic Defense",
+          "short": "MDEF",
+          "description": "Flat magical damage reduction per hit",
+          "default_formula": { "type": "linear", "a": 2.5, "b": 5 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.5,
+          "tags": ["defense", "magic"]
+        },
+        {
+          "id": "evasion",
+          "name": "Evasion",
+          "short": "EVA%",
+          "description": "Chance to completely avoid an incoming attack",
+          "default_formula": { "type": "linear", "a": 0.2, "b": 2 },
+          "unit": "%",
+          "min": 0,
+          "max": 75,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 1.5,
+          "tags": ["defense", "percent"]
+        },
+        {
+          "id": "block_rate",
+          "name": "Block Rate",
+          "short": "BLK%",
+          "description": "Chance to block an attack and reduce incoming damage",
+          "default_formula": { "type": "linear", "a": 0.3, "b": 0 },
+          "unit": "%",
+          "min": 0,
+          "max": 75,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 1.5,
+          "tags": ["defense", "percent"]
+        },
+        {
+          "id": "block_value",
+          "name": "Block Value",
+          "short": "BLKV",
+          "description": "Damage reduction applied when a block is successful",
+          "default_formula": { "type": "linear", "a": 2, "b": 5 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.0,
+          "tags": ["defense"]
+        },
+        {
+          "id": "hp_regen",
+          "name": "HP Regen",
+          "short": "REGEN",
+          "description": "Hit points recovered per second or per turn out of combat",
+          "default_formula": { "type": "linear", "a": 0.5, "b": 1 },
+          "unit": "/s",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.0,
+          "tags": ["defense", "recovery"]
+        },
+        {
+          "id": "damage_reduction",
+          "name": "Damage Reduction",
+          "short": "DR%",
+          "description": "Percentage-based damage reduction after flat defense is applied",
+          "default_formula": { "type": "linear", "a": 0.15, "b": 0 },
+          "unit": "%",
+          "min": 0,
+          "max": 75,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 1.5,
+          "tags": ["defense", "percent"]
+        }
+      ]
+    },
+    {
+      "id": "resources",
+      "name": "Resources",
+      "color": "#8e24aa",
+      "stats": [
+        {
+          "id": "mana",
+          "name": "Mana",
+          "short": "MP",
+          "description": "Resource pool consumed to cast spells and abilities",
+          "default_formula": { "type": "exponential", "a": 30, "b": 1.08 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.5,
+          "tags": ["resource", "magic"]
+        },
+        {
+          "id": "mana_regen",
+          "name": "Mana Regen",
+          "short": "MREGEN",
+          "description": "Mana recovered per second or per turn",
+          "default_formula": { "type": "linear", "a": 0.3, "b": 1 },
+          "unit": "/s",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.0,
+          "tags": ["resource", "recovery"]
+        },
+        {
+          "id": "stamina",
+          "name": "Stamina",
+          "short": "STA",
+          "description": "Energy resource used for dodge rolls, sprinting, and heavy attacks",
+          "default_formula": { "type": "linear", "a": 2, "b": 50 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.0,
+          "tags": ["resource", "physical"]
+        },
+        {
+          "id": "energy",
+          "name": "Energy",
+          "short": "EN",
+          "description": "Generic action resource that recharges between turns or over time",
+          "default_formula": { "type": "linear", "a": 1, "b": 100 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.0,
+          "tags": ["resource"]
+        },
+        {
+          "id": "rage",
+          "name": "Rage",
+          "short": "RAGE",
+          "description": "Resource that builds up during combat and decays between fights",
+          "default_formula": { "type": "linear", "a": 0, "b": 100 },
+          "unit": "",
+          "min": 0,
+          "max": 100,
+          "warn_flat_after": 0,
+          "warn_spike_ratio": 1.0,
+          "tags": ["resource", "combat"]
+        },
+        {
+          "id": "shield",
+          "name": "Shield",
+          "short": "SHD",
+          "description": "Temporary HP buffer that absorbs damage before HP is reduced",
+          "default_formula": { "type": "exponential", "a": 20, "b": 1.1 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.5,
+          "tags": ["resource", "defense"]
+        }
+      ]
+    },
+    {
+      "id": "progression",
+      "name": "Progression",
+      "color": "#f4a800",
+      "stats": [
+        {
+          "id": "xp_required",
+          "name": "XP Required",
+          "short": "XP",
+          "description": "Total experience points needed to reach the next level",
+          "default_formula": { "type": "exponential", "a": 100, "b": 1.2 },
+          "unit": "",
+          "min": 1,
+          "warn_flat_after": 0,
+          "warn_spike_ratio": 4.0,
+          "tags": ["progression", "core"]
+        },
+        {
+          "id": "xp_cumulative",
+          "name": "Cumulative XP",
+          "short": "CXPY",
+          "description": "Total XP accumulated from level 1 to current level",
+          "default_formula": { "type": "exponential", "a": 100, "b": 1.2 },
+          "unit": "",
+          "min": 0,
+          "derived": true,
+          "derive_from": "xp_required",
+          "derive_op": "cumsum",
+          "warn_spike_ratio": 5.0,
+          "tags": ["progression", "derived"]
+        },
+        {
+          "id": "gold_drop",
+          "name": "Gold Drop",
+          "short": "GOLD",
+          "description": "Average gold rewarded per enemy kill or quest at this level",
+          "default_formula": { "type": "exponential", "a": 10, "b": 1.15 },
+          "unit": "g",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 3.0,
+          "tags": ["progression", "economy"]
+        },
+        {
+          "id": "item_cost",
+          "name": "Item Cost",
+          "short": "COST",
+          "description": "Average shop price for gear appropriate to this level",
+          "default_formula": { "type": "exponential", "a": 50, "b": 1.18 },
+          "unit": "g",
+          "min": 1,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 3.0,
+          "tags": ["progression", "economy"]
+        },
+        {
+          "id": "skill_points",
+          "name": "Skill Points",
+          "short": "SP",
+          "description": "Points awarded on level-up to spend in skill trees",
+          "default_formula": { "type": "linear", "a": 0, "b": 1 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 0,
+          "warn_spike_ratio": 3.0,
+          "tags": ["progression"]
+        },
+        {
+          "id": "stat_points",
+          "name": "Stat Points",
+          "short": "STPT",
+          "description": "Free points awarded on level-up to distribute across base stats",
+          "default_formula": { "type": "linear", "a": 0, "b": 3 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 0,
+          "warn_spike_ratio": 2.0,
+          "tags": ["progression"]
+        }
+      ]
+    },
+    {
+      "id": "movement",
+      "name": "Movement",
+      "color": "#00897b",
+      "stats": [
+        {
+          "id": "speed",
+          "name": "Move Speed",
+          "short": "SPD",
+          "description": "Base movement speed in units per second",
+          "default_formula": { "type": "linear", "a": 0.05, "b": 5 },
+          "unit": "u/s",
+          "min": 1,
+          "warn_flat_after": 30,
+          "warn_spike_ratio": 1.5,
+          "tags": ["movement"]
+        },
+        {
+          "id": "initiative",
+          "name": "Initiative",
+          "short": "INIT",
+          "description": "Turn order priority in turn-based combat",
+          "default_formula": { "type": "linear", "a": 0.5, "b": 10 },
+          "unit": "",
+          "min": 1,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.0,
+          "tags": ["movement", "turnbased"]
+        },
+        {
+          "id": "jump_height",
+          "name": "Jump Height",
+          "short": "JUMP",
+          "description": "Maximum height in units achievable per jump",
+          "default_formula": { "type": "linear", "a": 0.02, "b": 2 },
+          "unit": "u",
+          "min": 1,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 1.5,
+          "tags": ["movement", "platformer"]
+        }
+      ]
+    },
+    {
+      "id": "utility",
+      "name": "Utility",
+      "color": "#546e7a",
+      "stats": [
+        {
+          "id": "luck",
+          "name": "Luck",
+          "short": "LCK",
+          "description": "Affects loot rarity rolls, random events, and bonus item drops",
+          "default_formula": { "type": "linear", "a": 0.5, "b": 5 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 30,
+          "warn_spike_ratio": 2.0,
+          "tags": ["utility"]
+        },
+        {
+          "id": "crafting",
+          "name": "Crafting",
+          "short": "CRAFT",
+          "description": "Skill level determining crafting success rate and recipe availability",
+          "default_formula": { "type": "linear", "a": 1, "b": 0 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.0,
+          "tags": ["utility", "crafting"]
+        },
+        {
+          "id": "stealth",
+          "name": "Stealth",
+          "short": "STL",
+          "description": "Determines detection range and sneak attack eligibility",
+          "default_formula": { "type": "linear", "a": 1, "b": 5 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.0,
+          "tags": ["utility"]
+        },
+        {
+          "id": "charisma",
+          "name": "Charisma",
+          "short": "CHA",
+          "description": "Affects NPC dialogue outcomes, shop discounts, and persuasion checks",
+          "default_formula": { "type": "linear", "a": 0.5, "b": 5 },
+          "unit": "",
+          "min": 0,
+          "warn_flat_after": 30,
+          "warn_spike_ratio": 2.0,
+          "tags": ["utility", "social"]
+        },
+        {
+          "id": "carry_weight",
+          "name": "Carry Weight",
+          "short": "CARRY",
+          "description": "Maximum total item weight the player can carry before being encumbered",
+          "default_formula": { "type": "linear", "a": 5, "b": 100 },
+          "unit": "kg",
+          "min": 0,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 2.0,
+          "tags": ["utility", "inventory"]
+        },
+        {
+          "id": "cooldown_reduction",
+          "name": "Cooldown Reduction",
+          "short": "CDR%",
+          "description": "Percentage reduction applied to all skill cooldown timers",
+          "default_formula": { "type": "linear", "a": 0.2, "b": 0 },
+          "unit": "%",
+          "min": 0,
+          "max": 75,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 1.5,
+          "tags": ["utility", "percent"]
+        }
+      ]
+    },
+    {
+      "id": "economy",
+      "name": "Economy",
+      "color": "#f57c00",
+      "stats": [
+        {
+          "id": "sell_rate",
+          "name": "Sell Rate",
+          "short": "SELL%",
+          "description": "Percentage of item value received when selling to shops",
+          "default_formula": { "type": "linear", "a": 0.1, "b": 50 },
+          "unit": "%",
+          "min": 0,
+          "max": 100,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 1.5,
+          "tags": ["economy", "percent"]
+        },
+        {
+          "id": "buy_discount",
+          "name": "Buy Discount",
+          "short": "DISC%",
+          "description": "Percentage reduction applied to shop purchase prices",
+          "default_formula": { "type": "linear", "a": 0.1, "b": 0 },
+          "unit": "%",
+          "min": 0,
+          "max": 50,
+          "warn_flat_after": 20,
+          "warn_spike_ratio": 1.5,
+          "tags": ["economy", "percent"]
+        },
+        {
+          "id": "drop_rate_bonus",
+          "name": "Drop Rate Bonus",
+          "short": "DROP%",
+          "description": "Additive bonus to item drop probability from enemies",
+          "default_formula": { "type": "linear", "a": 0.1, "b": 0 },
+          "unit": "%",
+          "min": 0,
+          "warn_flat_after": 30,
+          "warn_spike_ratio": 2.0,
+          "tags": ["economy", "loot", "percent"]
+        }
+      ]
+    }
+  ],
+  "balance_thresholds": {
+    "danger_spike_ratio": 3.0,
+    "warn_spike_ratio": 2.0,
+    "danger_flat_levels": 10,
+    "warn_flat_levels": 5,
+    "ttk_min_turns": 3,
+    "ttk_max_turns": 15
+  }
+}

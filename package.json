@@ -1,0 +1,13 @@
+{
+  "name": "rpg-stat-curve-system",
+  "version": "1.0.0",
+  "description": "RPG stat scaling formula system with curve visualization, balance analysis, and CSV/JSON export.",
+  "main": "core/engine.js",
+  "scripts": {
+    "analyze": "node tools/analyze.js",
+    "examples": "node examples.js",
+    "report": "node tools/analyze.js --all --report --min=1 --max=100"
+  },
+  "engines": { "node": ">=14.0.0" },
+  "license": "MIT"
+}

@@ -1,5 +1,7 @@
 # RPG Stat Curve Visualizer
 
+<img width="1920" height="1080" alt="RPG Stat Curve Visualizer" src="https://github.com/user-attachments/assets/dd444ff4-391c-4078-a54b-8afef5233c89" />
+
 A tool for game designers to define level-scaling formulas for every RPG stat, visualize the resulting curves, and catch balance problems before playtesting starts. No noise-based generation, no guessing - you write the formula, the system shows you exactly what it produces across all levels.
 
 Open `dashboard.html` in a browser and start editing. No server, no install, no build step.
